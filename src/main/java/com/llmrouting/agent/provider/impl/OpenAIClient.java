@@ -52,7 +52,7 @@ public class OpenAIClient implements LlmProvider {
             headers.setBearerAuth(apiKey);
 
             Map<String, Object> requestBody = new HashMap<>();
-            requestBody.put("model", "gpt-4-turbo"); // Fixed model flag away from deprecated gpt-4-turbo-preview
+            requestBody.put("model", "gpt-3.5-turbo"); // Reverting to universally accessible model
             
             Map<String, String> message = new HashMap<>();
             message.put("role", "user");

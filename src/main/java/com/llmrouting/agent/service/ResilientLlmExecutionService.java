@@ -5,12 +5,10 @@ import com.llmrouting.agent.provider.LlmProvider;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import io.github.resilience4j.retry.RetryRegistry;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.function.Supplier;
 
-@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ResilientLlmExecutionService {
