@@ -2,6 +2,7 @@ package com.llmrouting.agent.provider.impl;
 
 import com.llmrouting.agent.model.ExpertModel;
 import com.llmrouting.agent.provider.LlmProvider;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 /**
@@ -9,6 +10,7 @@ import org.springframework.stereotype.Component;
  * Simulates an LLM returning structured JSON based on keywords in the prompt.
  */
 @Component
+@Profile("dev")
 public class MockLlmProvider implements LlmProvider {
 
     @Override
