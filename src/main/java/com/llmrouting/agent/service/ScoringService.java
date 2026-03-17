@@ -51,49 +51,44 @@ public class ScoringService {
     public void init() {
         capabilities = new EnumMap<>(ExpertModel.class);
         
-        // ChatGPT -> Coding + Reasoning (High complexity)
         capabilities.put(ExpertModel.CHATGPT, ModelCapability.builder()
             .model(ExpertModel.CHATGPT)
-            .supportedIntents(List.of("coding", "research", "general"))
+            .strengths(List.of("coding", "reasoning", "explanation"))
             .maxComplexity("high")
-            .baseLatencyMs(1200)
-            .costPerRequest(0.01)
+            .latencyScore(6) // somewhat slow due to reasoning depth
+            .costLevel("high")
             .build());
 
-        // Claude -> Summarization + Long text (High complexity)
         capabilities.put(ExpertModel.CLAUDE, ModelCapability.builder()
             .model(ExpertModel.CLAUDE)
-            .supportedIntents(List.of("summarization", "coding", "research"))
+            .strengths(List.of("reasoning", "summarization", "explanation"))
             .maxComplexity("high")
-            .baseLatencyMs(1500)
-            .costPerRequest(0.015)
+            .latencyScore(5)
+            .costLevel("high")
             .build());
 
-        // Gemini -> General Knowledge (Medium complexity, fast, cheap)
         capabilities.put(ExpertModel.GEMINI, ModelCapability.builder()
             .model(ExpertModel.GEMINI)
-            .supportedIntents(List.of("general", "summarization", "coding"))
+            .strengths(List.of("general", "explanation"))
             .maxComplexity("medium")
-            .baseLatencyMs(600)
-            .costPerRequest(0.002)
+            .latencyScore(8)
+            .costLevel("medium")
             .build());
 
-        // Perplexity -> Real-time Search
         capabilities.put(ExpertModel.PERPLEXITY, ModelCapability.builder()
             .model(ExpertModel.PERPLEXITY)
-            .supportedIntents(List.of("real-time", "research", "general"))
+            .strengths(List.of("realtime", "search", "general"))
             .maxComplexity("medium")
-            .baseLatencyMs(2000)
-            .costPerRequest(0.005)
+            .latencyScore(7)
+            .costLevel("medium")
             .build());
             
-        // Hugging Face -> Extreme Low Cost / Speed fallback layer (Low complexity)
         capabilities.put(ExpertModel.HUGGINGFACE, ModelCapability.builder()
             .model(ExpertModel.HUGGINGFACE)
-            .supportedIntents(List.of("general", "summarization"))
+            .strengths(List.of("simple", "general"))
             .maxComplexity("low")
-            .baseLatencyMs(300)
-            .costPerRequest(0.0005)
+            .latencyScore(10) // fastest
+            .costLevel("low")
             .build());
     }
 
@@ -106,17 +101,19 @@ public class ScoringService {
     }
 
     private double calculateScore(String rawQuery, ModelCapability cap, IntentResult classification) {
-        // 1. Intent Match (0 to 1)
-        double intentScore = cap.getSupportedIntents().contains(classification.getIntent()) ? 1.0 : 0.0;
+        // 1. Intent Match (0 to 1) -> Map classification.getIntent() against cap.getStrengths()
+        double intentScore = cap.getStrengths().contains(classification.getIntent().toLowerCase()) ? 1.0 : 0.0;
         
         // 2. Complexity Fit (0 to 1)
         double complexityScore = calculateComplexityFit(cap.getMaxComplexity(), classification.getComplexity());
 
-        // 3. Latency Score (0 to 1, max latency scaled ~2000ms)
-        double latencyScore = Math.max(0.0, 1.0 - (cap.getBaseLatencyMs() / 2000.0));
+        // 3. Latency Score (0 to 1, derived from 1-10 scale)
+        double latencyScore = cap.getLatencyScore() / 10.0;
 
-        // 4. Cost Score (0 to 1, cheap models approach 1.0, max cost scaled ~0.02)
-        double costScore = Math.max(0.0, 1.0 - (cap.getCostPerRequest() / 0.02));
+        // 4. Cost Score (0 to 1) - Low cost gets higher score
+        double costScore = 0.5;
+        if ("low".equalsIgnoreCase(cap.getCostLevel())) costScore = 1.0;
+        else if ("high".equalsIgnoreCase(cap.getCostLevel())) costScore = 0.2;
 
         // 5. Memory Boost (0 to 1, 0.5 is neutral)
         double memoryScore = memoryService.calculateMemoryBoost(rawQuery, classification, cap.getModel());
@@ -132,19 +129,19 @@ public class ScoringService {
             log.debug("High classification confidence detected. Applying cost multiplier. New cost weight: {}", dynamicCostWeight);
         }
 
-        // Re-normalize core execution weights (intent, complexity, latency, dynamic cost) and factor memory independently
+        // Re-normalize core execution weights (intent, complexity, latency, dynamic cost)
         double totalCoreWeight = intentWeight + complexityWeight + latencyWeight + dynamicCostWeight;
         double normIntentWeight = intentWeight / totalCoreWeight;
         double normComplexityWeight = complexityWeight / totalCoreWeight;
         double normLatencyWeight = latencyWeight / totalCoreWeight;
         double normCostWeight = dynamicCostWeight / totalCoreWeight;
 
-        // Calculate weighted total base score (0.0 to 1.0 ideally) applying the newly normalized dynamic fractions
+        // Calculate weighted total base score
         double baseScore = (intentScore * normIntentWeight) + 
                            (complexityScore * normComplexityWeight) + 
                            (latencyScore * normLatencyWeight) + 
                            (costScore * normCostWeight) +
-                           (memoryScore * memoryWeight); // Memory remains a fixed conceptual ceiling boost
+                           (memoryScore * memoryWeight);  // Memory remains a fixed conceptual ceiling boost
 
         // Confine the math strictly
         baseScore = Math.max(0.0, Math.min(1.0, baseScore));

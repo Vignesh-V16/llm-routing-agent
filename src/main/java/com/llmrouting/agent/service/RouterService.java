@@ -73,6 +73,7 @@ public class RouterService {
         // 5. Synthesize
         QueryResponse finalResponse = synthesizeResponse(
             responses, 
+            selectedModels,
             classification.getConfidenceScore(), 
             System.currentTimeMillis() - startTime
         );
@@ -112,12 +113,6 @@ public class RouterService {
         ExpertModel topModel = sortedModels.get(0);
         double topScore = scores.getOrDefault(topModel, 0.0);
 
-        if (topScore < minimumScoreThreshold) {
-            log.warn("Top model '{}' scored {} which is below threshold {}. Escalating to CHATGPT fallback.", 
-                topModel, topScore, minimumScoreThreshold);
-            return Collections.singletonList(ExpertModel.CHATGPT); 
-        }
-
         if ("high".equalsIgnoreCase(classification.getComplexity()) && sortedModels.size() > 1) {
             log.info("High complexity detected. Selecting top 2 MoE models: {}, {}", sortedModels.get(0), sortedModels.get(1));
             return List.of(sortedModels.get(0), sortedModels.get(1));
@@ -141,8 +136,11 @@ public class RouterService {
 
     private CompletableFuture<ExpertResponse> executeWithFallback(String query, ExpertModel targetModel, List<ExpertModel> alreadyTried, Map<ExpertModel, Double> scores) {
         return CompletableFuture.supplyAsync(() -> {
-            log.debug("Executing query on model: {}", targetModel);
+            log.info("Executing query on model: {}", targetModel);
+            long start = System.currentTimeMillis();
             String rawText = resilientLlmProvider.execute(query, targetModel);
+            long latency = System.currentTimeMillis() - start;
+            log.info("Model {} responded successfully in {} ms", targetModel, latency);
             return new ExpertResponse(targetModel, rawText);
         }, taskExecutor)
         .orTimeout(asyncTimeoutSeconds, TimeUnit.SECONDS)
@@ -167,12 +165,19 @@ public class RouterService {
         });
     }
 
-    private QueryResponse synthesizeResponse(List<ExpertResponse> responses, double confidence, long totalLatency) {
+    private QueryResponse synthesizeResponse(List<ExpertResponse> responses, List<ExpertModel> selectedModels, double confidence, long totalLatency) {
         String finalAnswer = synthesizerService.synthesize("Original Query Hidden in Log", responses);
         
+        ExpertModel primary = responses.isEmpty() ? ExpertModel.GEMINI : responses.get(0).getModel();
+        ExpertModel secondary = responses.size() > 1 ? responses.get(1).getModel() : null;
+        
+        boolean fallbackUsed = responses.stream().anyMatch(r -> !selectedModels.contains(r.getModel()));
+
         return QueryResponse.builder()
                 .answer(finalAnswer)
-                .modelUsed(responses.isEmpty() ? ExpertModel.GEMINI : responses.get(0).getModel()) 
+                .modelUsed(primary) 
+                .secondaryModel(secondary)
+                .fallbackUsed(fallbackUsed)
                 .latencyMs(totalLatency)
                 .cost(responses.size() * 0.01) 
                 .confidenceScore(confidence)

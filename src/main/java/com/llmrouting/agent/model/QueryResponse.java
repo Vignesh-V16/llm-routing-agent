@@ -8,6 +8,8 @@ import lombok.Data;
 public class QueryResponse {
     private String answer;
     private ExpertModel modelUsed;
+    private ExpertModel secondaryModel;
+    private boolean fallbackUsed;
     private long latencyMs;
     private double cost;
     private double confidenceScore;
