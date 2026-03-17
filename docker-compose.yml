@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  moe-routing-agent:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      # Inject overriding OS parameters
+      - ROUTING_API_KEY=n8n-moe-secret-key-123
+      - N8N_WEBHOOK_URL=http://host.docker.internal:5678/webhook/routing-telemetry
+      - SPRING_PROFILES_ACTIVE=prod
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
