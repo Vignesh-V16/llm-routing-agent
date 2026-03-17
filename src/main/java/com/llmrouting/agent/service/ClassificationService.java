@@ -23,9 +23,30 @@ public class ClassificationService {
 
     public IntentResult classify(String query) {
         String prompt = String.format(promptTemplate, query.replace("\"", "\\\""));
+        String jsonResponse = null;
         
-        String jsonResponse = llmProvider.executePrompt(prompt, ExpertModel.GEMINI);
-        
+        try {
+            jsonResponse = llmProvider.executePrompt(prompt, ExpertModel.GEMINI);
+        } catch (Exception e) {
+            log.warn("Classification primary failure (Gemini): {}. Falling back to OpenAI...", e.getMessage());
+            try {
+                jsonResponse = llmProvider.executePrompt(prompt, ExpertModel.CHATGPT);
+                log.info("Classification successfully resolved using OpenAI fallback.");
+            } catch (Exception ex) {
+                log.error("Both primary (Gemini) and secondary (OpenAI) classification providers failed.", ex);
+            }
+        }
+
+        if (jsonResponse == null) {
+            log.warn("Classification pipeline completely failed! Emitting safe default routing payload.");
+            return IntentResult.builder()
+                .intent("general")
+                .complexity("high") // Safely defaults to high-complexity capable router
+                .requiresRealTime(false)
+                .confidenceScore(0.1)
+                .build();
+        }
+
         try {
             // Strip markdown block if present (e.g., ```json ... ```)
             String cleanJson = jsonResponse.replaceAll("```json", "").replaceAll("```", "").trim();
@@ -61,7 +82,7 @@ public class ClassificationService {
             return result;
 
         } catch (Exception e) {
-            log.error("Failed to parse LLM classification response completely. Raw: {}", jsonResponse, e);
+            log.error("Failed to execute or parse LLM classification completely.", e);
             return IntentResult.builder()
                 .intent("general")
                 .complexity("high") // Default to high complexity to route to a smarter model when in doubt

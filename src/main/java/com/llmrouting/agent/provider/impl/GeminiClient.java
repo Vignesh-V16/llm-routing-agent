@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
@@ -25,7 +26,6 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class GeminiClient implements LlmProvider {
 
-    private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
 
     @Value("${routing.api.gemini.url}")
@@ -38,6 +38,10 @@ public class GeminiClient implements LlmProvider {
     public String executePrompt(String prompt, ExpertModel model) {
         if (model != ExpertModel.GEMINI) {
             throw new IllegalArgumentException("GeminiClient cannot execute prompt for model: " + model);
+        }
+
+        if (apiKey == null || apiKey.trim().isEmpty() || apiKey.contains("unconfigured")) {
+            throw new IllegalStateException("GEMINI_API_KEY is missing or unconfigured. Aborting execution safely.");
         }
 
         try {
@@ -62,7 +66,13 @@ public class GeminiClient implements LlmProvider {
             // Some environments require API Key interpolation via query params, but header is more resilient if supported.
             String targetUrl = apiUrl + "?key=" + apiKey;
 
-            String response = restTemplate.postForObject(targetUrl, request, String.class);
+            // Instantiate native timeout boundaries for this external HTTP connection to prevent Thread blocking
+            SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+            factory.setConnectTimeout(5000);
+            factory.setReadTimeout(10000);
+            RestTemplate timeoutTemplate = new RestTemplate(factory);
+
+            String response = timeoutTemplate.postForObject(targetUrl, request, String.class);
             
             JsonNode rootNode = objectMapper.readTree(response);
             String responseText = rootNode.path("candidates").get(0).path("content").path("parts").get(0).path("text").asText();
@@ -70,8 +80,8 @@ public class GeminiClient implements LlmProvider {
             return responseText.trim();
 
         } catch (Exception e) {
-            log.error("Failed to execute prompt against Gemini", e);
-            throw new RuntimeException("Gemini execution failed", e);
+            log.error("Failed to execute prompt against Gemini: {}", e.getMessage());
+            throw new IllegalStateException("Gemini execution failed: " + e.getMessage(), e);
         }
     }
 }
