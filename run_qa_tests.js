@@ -50,15 +50,16 @@ function makeRequest(queryName, queryText) {
 }
 
 async function runAllTests() {
-    console.log("🚀 Starting E2E QA Validation on Production MoE Router...\n");
+    console.log("🚀 Starting FINAL E2E QA Validation on Production MoE Router...\n");
 
     const tests = [
-        { name: 'A. Coding', query: 'Write Java code for quicksort' },
-        { name: 'B. Summarization', query: 'Summarize this paragraph: Artificial Intelligence is transforming industries rapidly by automating workflows, enhancing decision-making, and creating entirely new product categories.' },
-        { name: 'C. Real-time / Search', query: 'What is the latest AI news today?' },
-        { name: 'D. General knowledge', query: 'Explain gravity in simple terms' },
-        { name: 'E. Simple query', query: 'Hi' },
-        { name: 'F. Multi-model Execution', query: 'Compare machine learning, deep learning, and AI with examples. I need a very detailed technical breakdown.' }
+        { name: '1. Basic Functional', query: 'Explain binary search' },
+        { name: '2A. Model Routing - Coding', query: 'Write Java code for quicksort' },
+        { name: '2B. Model Routing - Summarization', query: 'Summarize this paragraph: AI is transforming the world rapidly by automating workflows.' },
+        { name: '2C. Model Routing - Realtime/Search', query: 'Latest AI news today' },
+        { name: '2D. Model Routing - General', query: 'Explain gravity' },
+        { name: '2E. Model Routing - Simple', query: 'Hi' },
+        { name: '4. Error Handling - Empty', query: '' }
     ];
 
     for (const test of tests) {
@@ -71,20 +72,25 @@ async function runAllTests() {
         
         try {
             const json = JSON.parse(result.data);
-            console.log(`   Model Used: ${json.modelUsed}`);
-            console.log(`   Secondary Model: ${json.secondaryModel || 'N/A'}`);
-            console.log(`   Fallback Used: ${json.fallbackUsed}`);
-            console.log(`   Internal Latency: ${json.latencyMs}ms`);
-            console.log(`   Response Preview: ${json.answer ? json.answer.substring(0, 100).replace(/\n/g, ' ') + '...' : 'EMPTY'}`);
-            if (result.status !== 200) console.log(`   Raw Data: ${result.data}`);
+            if(json.modelUsed) console.log(`   Model Used: ${json.modelUsed}`);
+            if(json.secondaryModel) console.log(`   Secondary Model: ${json.secondaryModel}`);
+            if(json.fallbackUsed !== undefined) console.log(`   Fallback Used: ${json.fallbackUsed}`);
+            if(json.latencyMs) console.log(`   Internal Latency: ${json.latencyMs}ms`);
+            
+            if(json.answer) {
+                 console.log(`   Response Preview: ${json.answer.substring(0, 100).replace(/\\n/g, ' ')}...`);
+            } else if (json.error || json.message) {
+                 console.log(`   Error Message: ${json.error || json.message}`);
+            }
+            if (result.status !== 200 && result.status !== 400) console.log(`   Raw Data: ${result.data}`);
         } catch (e) {
-            console.log(`   Parse Error! Raw Data: ${result.data}`);
+            console.log(`   Raw Data: ${result.data}`);
         }
     }
     
-    console.log('\n\n⏳ Running Cache Validation Test...');
-    console.log('   Query: "Explain gravity in simple terms" (Second time)');
-    const cacheResult = await makeRequest('Cache Test', 'Explain gravity in simple terms');
+    console.log('\n\n⏳ Running Test 5: Cache Validation...');
+    console.log('   Query: "Explain binary search" (Second time)');
+    const cacheResult = await makeRequest('Cache Test', 'Explain binary search');
     console.log(`   HTTP Status: ${cacheResult.status}`);
     console.log(`   RTT Latency: ${cacheResult.latency}ms`);
     try {
@@ -93,7 +99,7 @@ async function runAllTests() {
     } catch(e){}
 
     console.log("\n=========================================");
-    console.log("🏁 QA Validation Execution Completed.");
+    console.log("🏁 Final QA Validation Execution Completed.");
     console.log("=========================================");
 }
 

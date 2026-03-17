@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
@@ -25,7 +26,6 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class OpenAIClient implements LlmProvider {
 
-    private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
 
     @Value("${routing.api.openai.url}")
@@ -40,6 +40,10 @@ public class OpenAIClient implements LlmProvider {
             throw new IllegalArgumentException("OpenAIClient cannot execute prompt for model: " + model);
         }
 
+        if (apiKey == null || apiKey.trim().isEmpty() || apiKey.contains("unconfigured")) {
+            throw new IllegalStateException("OPENAI_API_KEY is missing or unconfigured. Aborting execution safely.");
+        }
+
         try {
             log.debug("Routing query to OpenAI API...");
 
@@ -48,7 +52,7 @@ public class OpenAIClient implements LlmProvider {
             headers.setBearerAuth(apiKey);
 
             Map<String, Object> requestBody = new HashMap<>();
-            requestBody.put("model", "gpt-4-turbo-preview"); // Standardizing on a capable model
+            requestBody.put("model", "gpt-4-turbo"); // Fixed model flag away from deprecated gpt-4-turbo-preview
             
             Map<String, String> message = new HashMap<>();
             message.put("role", "user");
@@ -59,7 +63,13 @@ public class OpenAIClient implements LlmProvider {
 
             HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
             
-            String response = restTemplate.postForObject(apiUrl, request, String.class);
+            // Instantiate native timeout boundaries for this external HTTP connection to prevent Thread blocking
+            SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+            factory.setConnectTimeout(5000);
+            factory.setReadTimeout(15000); // OpenAI reasoning may take slightly longer
+            RestTemplate timeoutTemplate = new RestTemplate(factory);
+
+            String response = timeoutTemplate.postForObject(apiUrl, request, String.class);
             
             JsonNode rootNode = objectMapper.readTree(response);
             String content = rootNode.path("choices").get(0).path("message").path("content").asText();
@@ -67,8 +77,8 @@ public class OpenAIClient implements LlmProvider {
             return content.trim();
 
         } catch (Exception e) {
-            log.error("Failed to execute prompt against OpenAI", e);
-            throw new RuntimeException("OpenAI execution failed", e);
+            log.error("Failed to execute prompt against OpenAI: {}", e.getMessage());
+            throw new IllegalStateException("OpenAI execution failed: " + e.getMessage(), e);
         }
     }
 }
