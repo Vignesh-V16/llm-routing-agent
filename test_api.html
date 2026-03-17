@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API Test Harness</title>
+</head>
+<body>
+    <h1>API Validation Tests</h1>
+    <pre id="output">Running tests...\n</pre>
+    <script>
+        async function runTests() {
+            const out = document.getElementById('output');
+            function log(msg) { out.textContent += msg + '\n'; }
+            
+            // Wait a moment for UI to render
+            await new Promise(r => setTimeout(r, 500));
+            
+            const url = 'https://llm-routing-agent.onrender.com/api/v1/router/query';
+            const headers = { 'Content-Type': 'application/json', 'X-API-KEY': 'my-secret-key-123' };
+
+            try {
+                // 1. Basic API Response
+                log('====== 1. BASIC API RESPONSE ======');
+                let t0 = performance.now();
+                let r1 = await fetch(url, { method: 'POST', headers, body: JSON.stringify({query: 'Explain binary search'}) });
+                let d1 = await r1.text();
+                let t1 = performance.now();
+                log(`Status: ${r1.status}`);
+                log(`Latency: ${(t1-t0).toFixed(0)} ms`);
+                log(`Contains data: ${d1.length > 20}`);
+                log(`Sample: ${d1.substring(0, 150)}...\n`);
+
+                // 2A. Routing Validation (Coding)
+                log('====== 2A. ROUTING: CODING ======');
+                let r2a = await fetch(url, { method: 'POST', headers, body: JSON.stringify({query: 'Write Java code for quicksort'}) });
+                let d2a = await r2a.text();
+                log(`Status: ${r2a.status}`);
+                log(`Sample: ${d2a.substring(0, 150)}...\n`);
+
+                // 2B. Routing Validation (Real-Time)
+                log('====== 2B. ROUTING: REALTIME ======');
+                let r2b = await fetch(url, { method: 'POST', headers, body: JSON.stringify({query: 'What is the latest AI news today'}) });
+                let d2b = await r2b.text();
+                log(`Status: ${r2b.status}`);
+                log(`Sample: ${d2b.substring(0, 150)}...\n`);
+
+                // 3. Error Handling
+                log('====== 3. ERROR HANDLING ======');
+                let r3 = await fetch(url, { method: 'POST', headers, body: JSON.stringify({query: ''}) });
+                let d3 = await r3.text();
+                log(`Status: ${r3.status}`);
+                log(`Response: ${d3.substring(0, 100)}\n`);
+
+                // 5. CACHE VALIDATION (Sending the same query as Test 1 again)
+                log('====== 5. CACHE VALIDATION ======');
+                let t2 = performance.now();
+                let r5 = await fetch(url, { method: 'POST', headers, body: JSON.stringify({query: 'Explain binary search'}) });
+                let d5 = await r5.text();
+                let t3 = performance.now();
+                log(`Status: ${r5.status}`);
+                log(`Latency: ${(t3-t2).toFixed(0)} ms`);
+                const speedup = ((t1-t0) - (t3-t2)).toFixed(0);
+                log(`Cache Speedup: ${speedup} ms faster\n`);
+
+                log('====== ALL DONE ======');
+            } catch(e) {
+                log('ERROR: ' + e.message);
+                log('====== ALL DONE ======');
+            }
+        }
+        runTests();
+    </script>
+</body>
+</html>

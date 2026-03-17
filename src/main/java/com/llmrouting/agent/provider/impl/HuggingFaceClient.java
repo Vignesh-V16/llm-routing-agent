@@ -16,13 +16,9 @@ public class HuggingFaceClient implements LlmProvider {
 
     @Override
     public String executePrompt(String prompt, ExpertModel model) {
-        if (model != ExpertModel.HUGGINGFACE) {
-            throw new IllegalArgumentException("HuggingFaceClient cannot execute prompt for model: " + model);
-        }
-
-        log.debug("Routing low-complexity prompt to Hugging Face Inference API.");
+        log.debug("Routing low-complexity prompt to Hugging Face Inference API. Requested model: {}", model);
         
         // Simulating rapid REST call to api-inference.huggingface.co
-        return "This is a direct, low-cost fallback response generated natively by HuggingFace.";
+        return "{\"intent\": \"general\", \"complexity\": \"low\", \"requiresRealTime\": false, \"confidenceScore\": 0.95}";
     }
 }
