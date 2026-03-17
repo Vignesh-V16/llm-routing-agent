@@ -26,14 +26,14 @@ public class ClassificationService {
         String jsonResponse = null;
         
         try {
-            jsonResponse = llmProvider.executePrompt(prompt, ExpertModel.GEMINI);
+            jsonResponse = llmProvider.executePrompt(prompt, ExpertModel.CLAUDE);
         } catch (Exception e) {
-            log.warn("Classification primary failure (Gemini): {}. Falling back to OpenAI...", e.getMessage());
+            log.warn("Classification primary failure (Claude): {}. Falling back to HuggingFace...", e.getMessage());
             try {
-                jsonResponse = llmProvider.executePrompt(prompt, ExpertModel.CHATGPT);
-                log.info("Classification successfully resolved using OpenAI fallback.");
+                jsonResponse = llmProvider.executePrompt(prompt, ExpertModel.HUGGINGFACE);
+                log.info("Classification successfully resolved using HuggingFace fallback.");
             } catch (Exception ex) {
-                log.error("Both primary (Gemini) and secondary (OpenAI) classification providers failed.", ex);
+                log.error("Both primary (Claude) and secondary (HuggingFace) classification providers failed.", ex);
             }
         }
 
