@@ -19,7 +19,6 @@ public class PrimaryLlmProviderDispatcher implements LlmProvider {
     private final OpenAIClient openAIClient;
     private final GeminiClient geminiClient;
     private final ClaudeClient claudeClient;
-    private final PerplexityClient perplexityClient;
     private final HuggingFaceClient huggingFaceClient;
 
     @Override
@@ -28,7 +27,6 @@ public class PrimaryLlmProviderDispatcher implements LlmProvider {
             case CHATGPT -> openAIClient.executePrompt(prompt, model);
             case GEMINI -> geminiClient.executePrompt(prompt, model);
             case CLAUDE -> claudeClient.executePrompt(prompt, model);
-            case PERPLEXITY -> perplexityClient.executePrompt(prompt, model);
             case HUGGINGFACE -> huggingFaceClient.executePrompt(prompt, model);
         };
     }

@@ -24,7 +24,7 @@ public class SynthesizerService {
         "%s\n\n" +
         "Synthesize these answers into a single, cohesive, and comprehensive response. " +
         "Resolve any contradictions logically and highlight the most important points. " +
-        "Note the Model Sources mentally when deciding which to trust (e.g., trust ChatGPT for code, Perplexity for real-time fact checks).";
+        "Note the Model Sources mentally when deciding which to trust (e.g., trust ChatGPT for code, Claude for real-time fact checks).";
 
     public String synthesize(String originalQuery, List<ExpertResponse> rawAnswers) {
         if (rawAnswers == null || rawAnswers.isEmpty()) {

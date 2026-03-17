@@ -61,7 +61,7 @@ public class ScoringService {
 
         capabilities.put(ExpertModel.CLAUDE, ModelCapability.builder()
             .model(ExpertModel.CLAUDE)
-            .strengths(List.of("reasoning", "summarization", "explanation"))
+            .strengths(List.of("reasoning", "summarization", "explanation", "realtime", "search"))
             .maxComplexity("high")
             .latencyScore(5)
             .costLevel("high")
@@ -75,14 +75,7 @@ public class ScoringService {
             .costLevel("medium")
             .build());
 
-        capabilities.put(ExpertModel.PERPLEXITY, ModelCapability.builder()
-            .model(ExpertModel.PERPLEXITY)
-            .strengths(List.of("realtime", "search", "general"))
-            .maxComplexity("medium")
-            .latencyScore(7)
-            .costLevel("medium")
-            .build());
-            
+
         capabilities.put(ExpertModel.HUGGINGFACE, ModelCapability.builder()
             .model(ExpertModel.HUGGINGFACE)
             .strengths(List.of("simple", "general"))
@@ -147,7 +140,7 @@ public class ScoringService {
         baseScore = Math.max(0.0, Math.min(1.0, baseScore));
 
         // Crucial Override: If requires real-time, drastically penalize others
-        if (classification.isRequiresRealTime() && cap.getModel() != ExpertModel.PERPLEXITY) {
+        if (classification.isRequiresRealTime() && cap.getModel() != ExpertModel.CLAUDE) {
             baseScore *= nonRealTimePenalty;
         }
 

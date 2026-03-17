@@ -3,7 +3,7 @@
 A production-grade, highly resilient Mixture-of-Experts (MoE) LLM routing backend built with Java 17 and Spring Boot.
 
 ## Overview
-This system dynamically routes user queries to the most capable and cost-effective AI expert (ChatGPT, Claude, Gemini, Perplexity, Hugging Face) in real-time. It evaluates intents, computes dynamic scoring, retrieves semantic memory via Cosine Similarity, synthesizes outputs using concurrent execution, and caches identical queries to achieve near-zero latency and cost for repeated requests.
+This system dynamically routes user queries to the most capable and cost-effective AI expert (ChatGPT, Claude, Gemini, Hugging Face) in real-time. It evaluates intents, computes dynamic scoring, retrieves semantic memory via Cosine Similarity, synthesizes outputs using concurrent execution, and caches identical queries to achieve near-zero latency and cost for repeated requests.
 
 ## Architecture Highlights
 - **Classifier & Scorer**: Adjusts model weights dynamically based on complexity and cost.

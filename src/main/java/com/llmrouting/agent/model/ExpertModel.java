@@ -4,6 +4,5 @@ public enum ExpertModel {
     CHATGPT,
     CLAUDE,
     GEMINI,
-    PERPLEXITY,
     HUGGINGFACE
 }
