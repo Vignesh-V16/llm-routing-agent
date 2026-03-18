@@ -16,7 +16,7 @@ export const sendChatQuery = async (query) => {
           'Content-Type': 'application/json',
           'X-API-KEY': API_KEY,
         },
-        timeout: 10000, // 10 second strict timeout
+        timeout: 300000, // 5 minute timeout for cold starts and complex routing
       }
     );
     
@@ -46,7 +46,7 @@ export const sendChatQuery = async (query) => {
     } else if (error.request) {
       // The request was made but no response was received
       if (error.code === 'ECONNABORTED') {
-        throw new Error("Request timed out after 10 seconds. The model took too long to respond.");
+        throw new Error("Request timed out after 5 minutes. The model took too long to respond.");
       }
       throw new Error("Server unreachable. Please check your internet connection or backend CORS configuration.");
     }
