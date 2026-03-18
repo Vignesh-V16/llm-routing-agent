@@ -25,6 +25,10 @@ public class RateLimitInterceptor implements HandlerInterceptor {
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+            return true; // CORS preflight whitelist
+        }
+
         if (bucket.tryConsume(1)) {
             return true;
         }
