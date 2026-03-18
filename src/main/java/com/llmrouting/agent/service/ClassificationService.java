@@ -3,7 +3,7 @@ package com.llmrouting.agent.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.llmrouting.agent.model.ExpertModel;
-import com.llmrouting.agent.model.IntentResult;
+import com.llmrouting.agent.model.FauxRoutingResult;
 import com.llmrouting.agent.provider.LlmProvider;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,29 +21,29 @@ public class ClassificationService {
     @Value("${routing.classification.prompt-template}")
     private String promptTemplate;
 
-    public IntentResult classify(String query) {
+    public FauxRoutingResult classify(String query) {
         String prompt = String.format(promptTemplate, query.replace("\"", "\\\""));
         String jsonResponse = null;
         
         try {
             jsonResponse = llmProvider.executePrompt(prompt, ExpertModel.CLAUDE);
         } catch (Exception e) {
-            log.warn("Classification primary failure (Claude): {}. Falling back to HuggingFace...", e.getMessage());
+            log.warn("Classification primary failure (Claude): {}. Falling back to Groq...", e.getMessage());
             try {
                 jsonResponse = llmProvider.executePrompt(prompt, ExpertModel.GROQ);
-                log.info("Classification successfully resolved using HuggingFace fallback.");
+                log.info("Classification successfully resolved using Fallback engine.");
             } catch (Exception ex) {
-                log.error("Both primary (Claude) and secondary (HuggingFace) classification providers failed.", ex);
+                log.error("Both primary (Claude) and fallback (Groq) classification providers failed.", ex);
             }
         }
 
         if (jsonResponse == null) {
             log.warn("Classification pipeline completely failed! Emitting safe default routing payload.");
-            return IntentResult.builder()
-                .intent("general")
-                .complexity("high") // Safely defaults to high-complexity capable router
-                .requiresRealTime(false)
-                .confidenceScore(0.1)
+            return FauxRoutingResult.builder()
+                .chosenExpert("gemini")
+                .backendModel("groq")
+                .finalPromptToBackend("You are a general AI expert. Answer clearly.\nUser query: " + query)
+                .reason("Fallback system default applied due to classification failure.")
                 .build();
         }
 
@@ -54,40 +54,30 @@ public class ClassificationService {
             // Strict parsing checking structure
             JsonNode rootNode = objectMapper.readTree(cleanJson);
             
-            String intent = rootNode.path("intent").asText("general");
-            String complexity = rootNode.path("complexity").asText("medium");
-            boolean requiresRealTime = rootNode.path("requiresRealTime").asBoolean(false);
-            double confidenceScore = rootNode.path("confidenceScore").asDouble(0.5);
+            String chosenExpert = rootNode.path("chosen_expert").asText("gemini");
+            String backendModel = rootNode.path("backend_model").asText("groq");
+            String finalPromptToBackend = rootNode.path("final_prompt_to_backend").asText("You are an AI assistant. User query: " + query);
+            String reason = rootNode.path("reason").asText("Routed inherently based on generic logic.");
 
-            // Normalize confidence score to 0.0 - 1.0 range
-            confidenceScore = Math.max(0.0, Math.min(1.0, confidenceScore));
-
-            // Fallback for very low confidence
-            if (confidenceScore < 0.3) {
-                log.warn("Low confidence classification ({}). Falling back to general/medium.", confidenceScore);
-                intent = "general";
-                complexity = "medium";
-            }
-
-            IntentResult result = IntentResult.builder()
-                .intent(intent)
-                .complexity(complexity)
-                .requiresRealTime(requiresRealTime)
-                .confidenceScore(confidenceScore)
+            FauxRoutingResult result = FauxRoutingResult.builder()
+                .chosenExpert(chosenExpert)
+                .backendModel(backendModel)
+                .finalPromptToBackend(finalPromptToBackend)
+                .reason(reason)
                 .build();
 
-            log.info("Query classified: [{}] -> Intent: {}, Complexity: {}, Confidence: {}", 
-                     query, result.getIntent(), result.getComplexity(), result.getConfidenceScore());
+            log.info("Query successfully Faux-Classified: [{}] -> Simulated Expert: {}, Execution Target: {}, Reason: {}", 
+                     query, result.getChosenExpert(), result.getBackendModel(), result.getReason());
             
             return result;
 
         } catch (Exception e) {
-            log.error("Failed to execute or parse LLM classification completely.", e);
-            return IntentResult.builder()
-                .intent("general")
-                .complexity("high") // Default to high complexity to route to a smarter model when in doubt
-                .requiresRealTime(false)
-                .confidenceScore(0.1)
+            log.error("Failed to execute or parse LLM Faux-Classification completely. Reverting to safe schema.", e);
+            return FauxRoutingResult.builder()
+                .chosenExpert("gemini")
+                .backendModel("groq")
+                .finalPromptToBackend("You are a general AI expert. Answer clearly.\nUser query: " + query)
+                .reason("Fallback system default.")
                 .build();
         }
     }
