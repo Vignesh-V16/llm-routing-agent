@@ -5,6 +5,11 @@ import QueryHeader from './components/QueryHeader';
 import MoeVisualizer from './components/MoeVisualizer';
 import ResponsePanel from './components/ResponsePanel';
 import MetricsPanel from './components/MetricsPanel';
+import RoutesView from './components/views/RoutesView';
+import ModelsView from './components/views/ModelsView';
+import AnalyticsView from './components/views/AnalyticsView';
+import LogsView from './components/views/LogsView';
+import SettingsView from './components/views/SettingsView';
 import { sendChatQuery } from './services/api';
 
 export default function App() {
@@ -140,7 +145,7 @@ export default function App() {
         {/* Top Input Bar ALWAYS visible */}
         <QueryHeader onSendMessage={handleSendMessage} isLoading={isRouting} />
         
-        {activeView === 'Dashboard' ? (
+        {activeView === 'Dashboard' && (
           <>
             {/* Core Layout Grid */}
             <div className="w-full max-w-7xl grid grid-cols-1 xl:grid-cols-3 gap-6 flex-1 px-6 min-h-[500px] mb-6 z-10 min-h-0">
@@ -166,15 +171,35 @@ export default function App() {
               />
             </div>
           </>
-        ) : (
-          <div className="w-full max-w-7xl flex-1 flex flex-col items-center justify-center text-center px-6 z-10">
-            <div className="p-8 rounded-full bg-gray-900/50 mb-6 border border-white/5 shadow-2xl">
-              <Bot size={64} className="text-gray-600" />
-            </div>
-            <h2 className="text-2xl font-bold text-gray-200 tracking-wide mb-3">{activeView} Module</h2>
-            <p className="text-gray-500 max-w-md leading-relaxed">
-              This advanced capability requires connecting standard OAuth and persistent postgres schemas before instantiation. We intend to release this functionality in version 2.0.
-            </p>
+        )}
+
+        {activeView === 'Routes' && (
+          <div className="flex-1 w-full p-6 min-h-0 overflow-hidden flex flex-col">
+             <RoutesView sessions={sessions} onSelectSession={setCurrentSessionId} onDeleteSession={(id) => setSessions(prev => prev.filter(s => s.id !== id))} setView={setActiveView} />
+          </div>
+        )}
+
+        {activeView === 'Models' && (
+          <div className="flex-1 w-full p-6 min-h-0 overflow-hidden flex flex-col">
+             <ModelsView />
+          </div>
+        )}
+
+        {activeView === 'Analytics' && (
+          <div className="flex-1 w-full p-6 min-h-0 overflow-hidden flex flex-col">
+             <AnalyticsView sessions={sessions} />
+          </div>
+        )}
+
+        {activeView === 'Logs' && (
+          <div className="flex-1 w-full p-6 min-h-0 overflow-hidden flex flex-col">
+             <LogsView sessions={sessions} />
+          </div>
+        )}
+
+        {activeView === 'Settings' && (
+          <div className="flex-1 w-full p-6 min-h-0 overflow-hidden flex flex-col">
+             <SettingsView onClearHistory={handleClearHistory} />
           </div>
         )}
 
