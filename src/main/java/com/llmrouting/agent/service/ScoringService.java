@@ -51,8 +51,8 @@ public class ScoringService {
     public void init() {
         capabilities = new EnumMap<>(ExpertModel.class);
         
-        capabilities.put(ExpertModel.CHATGPT, ModelCapability.builder()
-            .model(ExpertModel.CHATGPT)
+        capabilities.put(ExpertModel.OPENAI, ModelCapability.builder()
+            .model(ExpertModel.OPENAI)
             .strengths(List.of("coding", "reasoning", "explanation"))
             .maxComplexity("high")
             .latencyScore(6) // somewhat slow due to reasoning depth
@@ -76,12 +76,12 @@ public class ScoringService {
             .build());
 
 
-        capabilities.put(ExpertModel.HUGGINGFACE, ModelCapability.builder()
-            .model(ExpertModel.HUGGINGFACE)
-            .strengths(List.of("simple", "general"))
-            .maxComplexity("low")
-            .latencyScore(10) // fastest
-            .costLevel("low")
+        capabilities.put(ExpertModel.GROQ, ModelCapability.builder()
+            .model(ExpertModel.GROQ)
+            .strengths(List.of("general", "coding", "explanation", "simple"))
+            .maxComplexity("high")
+            .latencyScore(9) // Blazing fast Llama3 70B
+            .costLevel("low") // Free inference tier
             .build());
     }
 

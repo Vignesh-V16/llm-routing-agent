@@ -19,15 +19,15 @@ public class PrimaryLlmProviderDispatcher implements LlmProvider {
     private final OpenAIClient openAIClient;
     private final GeminiClient geminiClient;
     private final ClaudeClient claudeClient;
-    private final HuggingFaceClient huggingFaceClient;
+    private final GroqClient groqClient;
 
     @Override
     public String executePrompt(String prompt, ExpertModel model) {
         return switch (model) {
-            case CHATGPT -> openAIClient.executePrompt(prompt, model);
+            case OPENAI -> openAIClient.executePrompt(prompt, model);
             case GEMINI -> geminiClient.executePrompt(prompt, model);
             case CLAUDE -> claudeClient.executePrompt(prompt, model);
-            case HUGGINGFACE -> huggingFaceClient.executePrompt(prompt, model);
+            case GROQ -> groqClient.executePrompt(prompt, model);
         };
     }
 }

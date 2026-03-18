@@ -28,7 +28,7 @@ public class EvaluatorService {
             log.debug("Dispatching LLM evaluator for query: {}", originalQuery);
             
             // Using a resilient call backed by Resilience4j. Utilizing a capable reasoning model natively.
-            String resultText = resilientLlmProvider.execute(prompt, ExpertModel.CHATGPT);
+            String resultText = resilientLlmProvider.execute(prompt, ExpertModel.OPENAI);
             
             // Parse strictly to float
             double score = Double.parseDouble(resultText.trim());

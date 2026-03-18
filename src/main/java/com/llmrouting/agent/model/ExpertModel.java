@@ -1,8 +1,8 @@
 package com.llmrouting.agent.model;
 
 public enum ExpertModel {
-    CHATGPT,
-    CLAUDE,
+    OPENAI,
     GEMINI,
-    HUGGINGFACE
+    CLAUDE,
+    GROQ
 }

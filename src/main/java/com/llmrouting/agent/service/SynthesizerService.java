@@ -48,6 +48,6 @@ public class SynthesizerService {
         log.info("Synthesizing {} distinct expert answers into a unified response.", rawAnswers.size());
         
         // Use a highly capable reasoning model for synthesis
-        return llmProvider.executePrompt(prompt, ExpertModel.CHATGPT);
+        return llmProvider.executePrompt(prompt, ExpertModel.OPENAI);
     }
 }

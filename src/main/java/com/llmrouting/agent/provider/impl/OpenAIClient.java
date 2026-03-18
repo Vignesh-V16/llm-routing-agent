@@ -36,7 +36,7 @@ public class OpenAIClient implements LlmProvider {
 
     @Override
     public String executePrompt(String prompt, ExpertModel model) {
-        if (model != ExpertModel.CHATGPT) {
+        if (model != ExpertModel.OPENAI) {
             throw new IllegalArgumentException("OpenAIClient cannot execute prompt for model: " + model);
         }
 

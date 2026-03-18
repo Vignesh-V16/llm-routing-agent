@@ -30,7 +30,7 @@ public class ClassificationService {
         } catch (Exception e) {
             log.warn("Classification primary failure (Claude): {}. Falling back to HuggingFace...", e.getMessage());
             try {
-                jsonResponse = llmProvider.executePrompt(prompt, ExpertModel.HUGGINGFACE);
+                jsonResponse = llmProvider.executePrompt(prompt, ExpertModel.GROQ);
                 log.info("Classification successfully resolved using HuggingFace fallback.");
             } catch (Exception ex) {
                 log.error("Both primary (Claude) and secondary (HuggingFace) classification providers failed.", ex);

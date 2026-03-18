@@ -15,8 +15,8 @@ public class MockLlmProvider implements LlmProvider {
 
     @Override
     public String executePrompt(String prompt, ExpertModel model) {
-        if (model == ExpertModel.HUGGINGFACE) {
-            return "{\"intent\": \"general\", \"complexity\": \"low\", \"requiresRealTime\": false, \"confidenceScore\": 0.95}";
+        if (model == ExpertModel.GROQ) {
+            return "Speed generating fallback response from mock GROQ.";
         }
         
         String lowerPrompt = prompt.toLowerCase();
