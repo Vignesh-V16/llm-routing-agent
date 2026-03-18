@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Bot, Navigation } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import QueryHeader from './components/QueryHeader';
 import MoeVisualizer from './components/MoeVisualizer';
@@ -60,24 +61,14 @@ export default function App() {
     }
   };
 
-  const updateCurrentSessionMessages = (newMessages, newTitle = null) => {
-    setSessions(prevSessions => {
-      if (!currentSessionId) {
-        const newId = Date.now().toString();
-        setCurrentSessionId(newId);
-        return [{ id: newId, title: newTitle || 'New Query Route', messages: newMessages }, ...prevSessions];
-      }
-      return prevSessions.map(s => {
-        if (s.id === currentSessionId) {
-          return { ...s, messages: newMessages, title: newTitle || s.title };
-        }
-        return s;
-      });
-    });
-  };
-
   const handleSendMessage = async (text) => {
     if (!text.trim()) return;
+    
+    let activeSessionId = currentSessionId;
+    if (!activeSessionId) {
+      activeSessionId = Date.now().toString();
+      setCurrentSessionId(activeSessionId);
+    }
     
     const userMsgId = Date.now().toString();
     const userMessage = { id: userMsgId, role: 'user', text };
@@ -85,7 +76,18 @@ export default function App() {
     const sessionTitle = messages.length === 0 ? text.slice(0, 30) + (text.length > 30 ? '...' : '') : null;
     const optimisticMessages = [...messages, userMessage];
     
-    updateCurrentSessionMessages(optimisticMessages, sessionTitle);
+    const updateSession = (newMessages, newTitle = null) => {
+      setSessions(prevSessions => {
+        const exists = prevSessions.some(s => s.id === activeSessionId);
+        if (exists) {
+          return prevSessions.map(s => s.id === activeSessionId ? { ...s, messages: newMessages, title: newTitle || s.title } : s);
+        } else {
+          return [{ id: activeSessionId, title: newTitle || 'New Query Route', messages: newMessages }, ...prevSessions];
+        }
+      });
+    };
+    
+    updateSession(optimisticMessages, sessionTitle);
     
     setIsRouting(true);
 
@@ -102,7 +104,7 @@ export default function App() {
         confidenceScore: response.confidenceScore,
       };
       
-      updateCurrentSessionMessages([...optimisticMessages, aiMessage]);
+      updateSession([...optimisticMessages, aiMessage]);
     } catch (error) {
       const errorMessage = {
         id: (Date.now() + 1).toString(),
@@ -114,7 +116,7 @@ export default function App() {
         cost: 0,
         confidenceScore: 0,
       };
-      updateCurrentSessionMessages([...optimisticMessages, errorMessage]);
+      updateSession([...optimisticMessages, errorMessage]);
     } finally {
       setIsRouting(false);
     }
@@ -125,42 +127,53 @@ export default function App() {
       
       {/* Left Sidebar Partition */}
       <Sidebar 
-        sessions={sessions}
-        currentSessionId={currentSessionId}
-        onSelectSession={setCurrentSessionId}
-        onNewSession={startNewSession}
-        onClearHistory={handleClearHistory}
+        activeView={activeView}
+        onViewChange={setActiveView}
       />
 
       {/* Main Dashboard Partition */}
       <main className="flex-1 flex flex-col items-center relative overflow-y-auto w-full scroll-smooth">
         
-        {/* Top Input Bar */}
+        {/* Top Input Bar ALWAYS visible */}
         <QueryHeader onSendMessage={handleSendMessage} isLoading={isRouting} />
         
-        {/* Core Layout Grid */}
-        <div className="w-full max-w-7xl grid grid-cols-1 xl:grid-cols-3 gap-6 flex-1 px-6 min-h-[500px] mb-6 z-10">
-          
-          {/* Node Visualizer (Takes up 2/3 of the screen width) */}
-          <div className="xl:col-span-2 relative drop-shadow-[0_0_15px_rgba(34,211,238,0.1)]">
-            <MoeVisualizer activeModel={latestAiMessage?.modelUsed} isRouting={isRouting} />
+        {activeView === 'Dashboard' ? (
+          <>
+            {/* Core Layout Grid */}
+            <div className="w-full max-w-7xl grid grid-cols-1 xl:grid-cols-3 gap-6 flex-1 px-6 min-h-[500px] mb-6 z-10">
+              
+              {/* Node Visualizer (Takes up 2/3 of the screen width) */}
+              <div className="xl:col-span-2 relative drop-shadow-[0_0_15px_rgba(34,211,238,0.1)]">
+                <MoeVisualizer activeModel={latestAiMessage?.modelUsed} isRouting={isRouting} />
+              </div>
+
+              {/* Response markdown (Takes up 1/3 of the screen width) */}
+              <div className="xl:col-span-1 relative drop-shadow-[0_0_15px_rgba(168,85,247,0.1)]">
+                <ResponsePanel aiMessage={latestAiMessage} />
+              </div>
+
+            </div>
+
+            {/* Global System Metrics Panel */}
+            <div className="w-full z-10">
+              <MetricsPanel 
+                latencyMs={latestAiMessage?.latencyMs || 0} 
+                cost={latestAiMessage?.cost || 0}
+                accuracy={latestAiMessage?.confidenceScore ? Math.round(latestAiMessage.confidenceScore * 100) : 0} 
+              />
+            </div>
+          </>
+        ) : (
+          <div className="w-full max-w-7xl flex-1 flex flex-col items-center justify-center text-center px-6 z-10">
+            <div className="p-8 rounded-full bg-gray-900/50 mb-6 border border-white/5 shadow-2xl">
+              <Bot size={64} className="text-gray-600" />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-200 tracking-wide mb-3">{activeView} Module</h2>
+            <p className="text-gray-500 max-w-md leading-relaxed">
+              This advanced capability requires connecting standard OAuth and persistent postgres schemas before instantiation. We intend to release this functionality in version 2.0.
+            </p>
           </div>
-
-          {/* Response markdown (Takes up 1/3 of the screen width) */}
-          <div className="xl:col-span-1 relative drop-shadow-[0_0_15px_rgba(168,85,247,0.1)]">
-            <ResponsePanel aiMessage={latestAiMessage} />
-          </div>
-
-        </div>
-
-        {/* Global System Metrics Panel */}
-        <div className="w-full z-10">
-           <MetricsPanel 
-             latencyMs={latestAiMessage?.latencyMs || 0} 
-             cost={latestAiMessage?.cost || 0}
-             accuracy={latestAiMessage?.confidenceScore ? Math.round(latestAiMessage.confidenceScore * 100) : 0} 
-           />
-        </div>
+        )}
 
       </main>
     </div>
