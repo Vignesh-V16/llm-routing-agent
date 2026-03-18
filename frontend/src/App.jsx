@@ -26,6 +26,8 @@ export default function App() {
     return localStorage.getItem('current_session_id') || null;
   });
 
+  const [activeView, setActiveView] = useState('Dashboard');
+
   // Derived current state
   const currentSession = sessions.find(s => s.id === currentSessionId) || { messages: [] };
   const messages = currentSession.messages;
