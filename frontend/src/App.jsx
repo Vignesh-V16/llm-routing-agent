@@ -34,6 +34,7 @@ export default function App() {
 
   // Find the latest AI message to populate the Dashboard metrics actively
   const latestAiMessage = [...messages].reverse().find(m => m.role === 'ai');
+  const latestUserMessage = [...messages].reverse().find(m => m.role === 'user');
 
   const [isRouting, setIsRouting] = useState(false);
 
@@ -142,16 +143,16 @@ export default function App() {
         {activeView === 'Dashboard' ? (
           <>
             {/* Core Layout Grid */}
-            <div className="w-full max-w-7xl grid grid-cols-1 xl:grid-cols-3 gap-6 flex-1 px-6 min-h-[500px] mb-6 z-10">
+            <div className="w-full max-w-7xl grid grid-cols-1 xl:grid-cols-3 gap-6 flex-1 px-6 min-h-[500px] mb-6 z-10 min-h-0">
               
               {/* Node Visualizer (Takes up 2/3 of the screen width) */}
-              <div className="xl:col-span-2 relative drop-shadow-[0_0_15px_rgba(34,211,238,0.1)]">
+              <div className="xl:col-span-2 relative drop-shadow-[0_0_15px_rgba(34,211,238,0.1)] flex flex-col min-h-0">
                 <MoeVisualizer activeModel={latestAiMessage?.modelUsed} isRouting={isRouting} />
               </div>
 
               {/* Response markdown (Takes up 1/3 of the screen width) */}
-              <div className="xl:col-span-1 relative drop-shadow-[0_0_15px_rgba(168,85,247,0.1)]">
-                <ResponsePanel aiMessage={latestAiMessage} />
+              <div className="xl:col-span-1 relative drop-shadow-[0_0_15px_rgba(168,85,247,0.1)] flex flex-col min-h-0">
+                <ResponsePanel aiMessage={latestAiMessage} userMessage={latestUserMessage} />
               </div>
 
             </div>
