@@ -28,6 +28,8 @@ export const sendChatQuery = async (query) => {
       modelUsed: response.data?.modelUsed || "UNKNOWN",
       latencyMs: response.data?.latencyMs || 0,
       fallbackUsed: response.data?.fallbackUsed || false,
+      cost: response.data?.cost || 0.0,
+      confidenceScore: response.data?.confidenceScore || 0.0,
     };
 
   } catch (error) {

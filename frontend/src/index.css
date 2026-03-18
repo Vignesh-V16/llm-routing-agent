@@ -23,3 +23,35 @@
 .dark ::-webkit-scrollbar-thumb {
   background-color: #475569;
 }
+
+@layer utilities {
+  .bg-dashboard {
+    background: radial-gradient(circle at top right, #111827 0%, #030712 100%);
+  }
+
+  .glass-panel {
+    background: rgba(17, 24, 39, 0.6);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .neon-border-cyan {
+    box-shadow: 0 0 10px rgba(34, 211, 238, 0.5), inset 0 0 10px rgba(34, 211, 238, 0.2);
+    border: 1px solid theme('colors.cyan.400');
+  }
+
+  .neon-border-purple {
+    box-shadow: 0 0 10px rgba(168, 85, 247, 0.5), inset 0 0 10px rgba(168, 85, 247, 0.2);
+    border: 1px solid theme('colors.purple.500');
+  }
+
+  .neon-border-blue {
+    box-shadow: 0 0 10px rgba(59, 130, 246, 0.5), inset 0 0 10px rgba(59, 130, 246, 0.2);
+    border: 1px solid theme('colors.blue.500');
+  }
+
+  .neon-text-glow {
+    text-shadow: 0 0 8px rgba(255, 255, 255, 0.6);
+  }
+}

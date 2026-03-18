@@ -1,8 +1,9 @@
-import { useState, useEffect, useRef } from 'react';
-import Header from './components/Header';
-import ChatWindow from './components/ChatWindow';
-import InputBar from './components/InputBar';
+import { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
+import QueryHeader from './components/QueryHeader';
+import MoeVisualizer from './components/MoeVisualizer';
+import ResponsePanel from './components/ResponsePanel';
+import MetricsPanel from './components/MetricsPanel';
 import { sendChatQuery } from './services/api';
 
 export default function App() {
@@ -24,22 +25,20 @@ export default function App() {
     return localStorage.getItem('current_session_id') || null;
   });
 
-  // Derived current messages
+  // Derived current state
   const currentSession = sessions.find(s => s.id === currentSessionId) || { messages: [] };
   const messages = currentSession.messages;
 
-  const [isLoading, setIsLoading] = useState(false);
+  // Find the latest AI message to populate the Dashboard metrics actively
+  const latestAiMessage = [...messages].reverse().find(m => m.role === 'ai');
 
-  // Sync state to local storage and document root strictly
+  const [isRouting, setIsRouting] = useState(false);
+
+  // Globally dark mode for the Dashboard
   useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
-    }
-  }, [darkMode]);
+    document.documentElement.classList.add('dark');
+    document.documentElement.classList.add('bg-gray-950');
+  }, []);
 
   useEffect(() => {
     localStorage.setItem('chat_sessions', JSON.stringify(sessions));
@@ -50,14 +49,12 @@ export default function App() {
     }
   }, [sessions, currentSessionId]);
 
-  const toggleDarkMode = () => setDarkMode(!darkMode);
-
   const startNewSession = () => {
-    setCurrentSessionId(null); // Wait until first message to formally create it
+    setCurrentSessionId(null);
   };
 
   const handleClearHistory = () => {
-    if (window.confirm("Are you sure you want to delete all chat history?")) {
+    if (window.confirm("Are you sure you want to delete all routing history?")) {
       setSessions([]);
       setCurrentSessionId(null);
     }
@@ -65,14 +62,11 @@ export default function App() {
 
   const updateCurrentSessionMessages = (newMessages, newTitle = null) => {
     setSessions(prevSessions => {
-      // If we don't have an active session, create one
       if (!currentSessionId) {
         const newId = Date.now().toString();
         setCurrentSessionId(newId);
-        return [{ id: newId, title: newTitle || 'New Conversation', messages: newMessages }, ...prevSessions];
+        return [{ id: newId, title: newTitle || 'New Query Route', messages: newMessages }, ...prevSessions];
       }
-
-      // Prepend to array keeping order
       return prevSessions.map(s => {
         if (s.id === currentSessionId) {
           return { ...s, messages: newMessages, title: newTitle || s.title };
@@ -83,18 +77,17 @@ export default function App() {
   };
 
   const handleSendMessage = async (text) => {
+    if (!text.trim()) return;
+    
     const userMsgId = Date.now().toString();
     const userMessage = { id: userMsgId, role: 'user', text };
     
-    // Set title dynamically based on first user interaction if empty
     const sessionTitle = messages.length === 0 ? text.slice(0, 30) + (text.length > 30 ? '...' : '') : null;
     const optimisticMessages = [...messages, userMessage];
     
-    // Mark old AI messages as NOT new instantly to prevent re-typing effects
-    const sealedMessages = optimisticMessages.map(m => m.role === 'ai' ? { ...m, isNew: false } : m);
-    updateCurrentSessionMessages(sealedMessages, sessionTitle);
+    updateCurrentSessionMessages(optimisticMessages, sessionTitle);
     
-    setIsLoading(true);
+    setIsRouting(true);
 
     try {
       const response = await sendChatQuery(text);
@@ -105,10 +98,11 @@ export default function App() {
         modelUsed: response.modelUsed,
         latencyMs: response.latencyMs,
         fallbackUsed: response.fallbackUsed,
-        isNew: true, // triggers typing effect natively
+        cost: response.cost,
+        confidenceScore: response.confidenceScore,
       };
       
-      updateCurrentSessionMessages([...sealedMessages, aiMessage]);
+      updateCurrentSessionMessages([...optimisticMessages, aiMessage]);
     } catch (error) {
       const errorMessage = {
         id: (Date.now() + 1).toString(),
@@ -117,16 +111,17 @@ export default function App() {
         modelUsed: 'SYSTEM_FAULT',
         latencyMs: 0,
         fallbackUsed: false,
-        isNew: true,
+        cost: 0,
+        confidenceScore: 0,
       };
-      updateCurrentSessionMessages([...sealedMessages, errorMessage]);
+      updateCurrentSessionMessages([...optimisticMessages, errorMessage]);
     } finally {
-      setIsLoading(false);
+      setIsRouting(false);
     }
   };
 
   return (
-    <div className="flex h-screen w-full bg-gray-50 dark:bg-gray-900 overflow-hidden font-sans transition-colors duration-200">
+    <div className="flex h-screen w-full bg-dashboard font-sans text-gray-100 overflow-hidden">
       
       {/* Left Sidebar Partition */}
       <Sidebar 
@@ -137,22 +132,37 @@ export default function App() {
         onClearHistory={handleClearHistory}
       />
 
-      {/* Main Chat Partition */}
-      <div className="flex flex-col flex-1 h-full min-w-0">
-        <Header darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
+      {/* Main Dashboard Partition */}
+      <main className="flex-1 flex flex-col items-center relative overflow-y-auto w-full scroll-smooth">
         
-        <ChatWindow messages={messages} isLoading={isLoading} />
+        {/* Top Input Bar */}
+        <QueryHeader onSendMessage={handleSendMessage} isLoading={isRouting} />
         
-        <div className="bg-gradient-to-t from-gray-50 via-gray-50 to-transparent dark:from-gray-900 dark:via-gray-900 pt-2 pb-2 z-10 relative">
-          <InputBar onSendMessage={handleSendMessage} isLoading={isLoading} />
-          <div className="text-center pb-2 px-4">
-            <p className="text-[11px] text-gray-400 dark:text-gray-500 tracking-wide font-medium select-none">
-              MoE Router can make dynamically routed mistakes. Architecture is powered by Spring Boot.
-            </p>
+        {/* Core Layout Grid */}
+        <div className="w-full max-w-7xl grid grid-cols-1 xl:grid-cols-3 gap-6 flex-1 px-6 min-h-[500px] mb-6 z-10">
+          
+          {/* Node Visualizer (Takes up 2/3 of the screen width) */}
+          <div className="xl:col-span-2 relative drop-shadow-[0_0_15px_rgba(34,211,238,0.1)]">
+            <MoeVisualizer activeModel={latestAiMessage?.modelUsed} isRouting={isRouting} />
           </div>
-        </div>
-      </div>
 
+          {/* Response markdown (Takes up 1/3 of the screen width) */}
+          <div className="xl:col-span-1 relative drop-shadow-[0_0_15px_rgba(168,85,247,0.1)]">
+            <ResponsePanel aiMessage={latestAiMessage} />
+          </div>
+
+        </div>
+
+        {/* Global System Metrics Panel */}
+        <div className="w-full z-10">
+           <MetricsPanel 
+             latencyMs={latestAiMessage?.latencyMs || 0} 
+             cost={latestAiMessage?.cost || 0}
+             accuracy={latestAiMessage?.confidenceScore ? Math.round(latestAiMessage.confidenceScore * 100) : 0} 
+           />
+        </div>
+
+      </main>
     </div>
   );
 }
