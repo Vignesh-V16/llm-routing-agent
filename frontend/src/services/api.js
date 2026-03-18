@@ -24,7 +24,7 @@ export const sendChatQuery = async (query) => {
     
     // Explicitly return only the clean, requested metadata map
     return {
-      responseText: response.data?.responseText || "No response received.",
+      responseText: response.data?.answer || "No response received.",
       modelUsed: response.data?.modelUsed || "UNKNOWN",
       latencyMs: response.data?.latencyMs || 0,
       fallbackUsed: response.data?.fallbackUsed || false,
