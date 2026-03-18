@@ -49,7 +49,7 @@ public class GroqClient implements LlmProvider {
             headers.set("Authorization", "Bearer " + groqApiKey);
 
             ObjectNode requestBody = objectMapper.createObjectNode();
-            requestBody.put("model", "llama-3.1-70b-versatile"); // Blazing fast production model
+            requestBody.put("model", "llama-3.3-70b-versatile"); // Upgraded production model
 
             ArrayNode messages = requestBody.putArray("messages");
             ObjectNode userMessage = objectMapper.createObjectNode();
