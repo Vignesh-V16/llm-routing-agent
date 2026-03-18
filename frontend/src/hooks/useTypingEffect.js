@@ -14,15 +14,13 @@ const useTypingEffect = (text, speedMs = 15) => {
       return;
     }
 
-    let i = 0;
+    let currentIndex = 0;
+    
     const intervalId = setInterval(() => {
-      setDisplayedText((prev) => {
-        const nextChar = text.charAt(i);
-        i++;
-        return prev + nextChar;
-      });
+      currentIndex++;
+      setDisplayedText(text.slice(0, currentIndex));
 
-      if (i >= text.length) {
+      if (currentIndex >= text.length) {
         clearInterval(intervalId);
         setIsTyping(false);
       }
